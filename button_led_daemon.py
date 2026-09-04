@@ -132,47 +132,6 @@ def watch_device(name, find_path_fn, handle_event_fn):
             time.sleep(2)
 
 
-class LedController:
-    """pigpio呼び出しをロックで保護する(複数スレッドからの同時アクセス対策)"""
-
-    def __init__(self, pi):
-        self._pi = pi
-        self._lock = threading.Lock()
-
-    def set(self, percent):
-        with self._lock:
-            led_control.set_duty_percent(self._pi, percent)
-
-
-class Flasher:
-    """押している間、別スレッドでLEDを点滅させる(Copy/Pasteとマウスで共有)"""
-
-    def __init__(self, led):
-        self._led = led
-        self._stop = threading.Event()
-        self._thread = None
-
-    def start(self):
-        if self._thread and self._thread.is_alive():
-            return
-        self._stop.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
-
-    def stop(self):
-        self._stop.set()
-        if self._thread:
-            self._thread.join(timeout=1.0)
-        self._led.set(0.0)
-
-    def _run(self):
-        on = False
-        while not self._stop.is_set():
-            on = not on
-            self._led.set(100.0 if on else 0.0)
-            self._stop.wait(FLASH_INTERVAL)
-
-
 class ButtonKeyboardHandler:
     """Copy(Ctrl+C)/Paste(Ctrl+V)ボタンのイベント処理"""
 
@@ -267,9 +226,9 @@ class MouseModeHandler:
 
 def main():
     pi = led_control.connect()
-    led = LedController(pi)
+    led = led_control.LedController(pi)
     led.set(0.0)
-    flasher = Flasher(led)
+    flasher = led_control.Flasher(led, interval=FLASH_INTERVAL)
 
     kb_handler = ButtonKeyboardHandler(led, flasher)
     mouse_handler = MouseModeHandler(led, flasher)

@@ -43,6 +43,7 @@ Raspberry Pi 2 Model B - N-ch MOSFET駆動LED制御 (Active High / PWM調光)
 """
 
 import sys
+import threading
 import time
 
 import pigpio
@@ -85,6 +86,48 @@ def set_duty_percent(pi, percent):
 
 def get_duty_percent(pi):
     return duty_to_percent(pi.get_PWM_dutycycle(GPIO_PIN))
+
+
+class LedController:
+    """pigpio呼び出しをロックで保護する(複数入力ソース/スレッドからの同時アクセス対策)"""
+
+    def __init__(self, pi):
+        self._pi = pi
+        self._lock = threading.Lock()
+
+    def set(self, percent):
+        with self._lock:
+            set_duty_percent(self._pi, percent)
+
+
+class Flasher:
+    """押している/有効な間、別スレッドでLEDを点滅させる(複数の入力ソースで共有可能)"""
+
+    def __init__(self, led, interval=0.1):
+        self._led = led
+        self._interval = interval
+        self._stop = threading.Event()
+        self._thread = None
+
+    def start(self):
+        if self._thread and self._thread.is_alive():
+            return
+        self._stop.clear()
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+
+    def stop(self):
+        self._stop.set()
+        if self._thread:
+            self._thread.join(timeout=1.0)
+        self._led.set(0.0)
+
+    def _run(self):
+        on = False
+        while not self._stop.is_set():
+            on = not on
+            self._led.set(100.0 if on else 0.0)
+            self._stop.wait(self._interval)
 
 
 def cmd_on(pi, args):
