@@ -1,6 +1,6 @@
 # Raspberry Pi 2 Model B - N-ch MOSFET LED制御
 
-Raspberry Pi 2 Model B (ユーザー: <user>, ホスト名: <host>) のGPIOで、
+Raspberry Pi 2 Model B のGPIOで、
 外付けNチャネルMOSFET(Active High, ローサイドスイッチ)を介して
 12V駆動LEDテープ/モジュールをPWM調光するプロジェクト。
 
@@ -89,6 +89,33 @@ Pythonスクリプト(クライアント)が終了しても、`pigpiod` がGPIO�
 保持し続けるため、`on`実行後にスクリプトが終了してもLEDは点灯状態を
 維持する。
 
+### systemdサービスの登録
+
+常駐プログラム(`button_led_daemon.py` / `web_led_server.py`)は**テンプレート
+ユニット**として提供している。実行ユーザー名をインスタンス名として渡すと、
+ユニット内の`%i`がユーザー名とホームディレクトリの両方に展開される
+(`User=%i` と `WorkingDirectory=/home/%i/basketball/raspi2-led`)。
+これによりユニットファイル自体に環境固有のユーザー名を書かずに済む。
+
+リポジトリの内容を`~/basketball/raspi2-led/`に配置した上で:
+
+```bash
+sudo cp button-led-daemon@.service web-led-server@.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now button-led-daemon@$USER.service
+sudo systemctl enable --now web-led-server@$USER.service
+```
+
+状態確認・ログは通常のsystemdと同じ(インスタンス名を含める):
+
+```bash
+systemctl status button-led-daemon@$USER.service
+journalctl -u button-led-daemon@$USER.service -f
+```
+
+配置先を`~/basketball/raspi2-led/`以外にする場合はユニットの
+`WorkingDirectory`を書き換えること。
+
 ## 使い方
 
 ```bash
@@ -107,8 +134,13 @@ python3 led_control.py <コマンド> [引数]
 ## 入力デバイス
 
 CLIでの直接操作(`led_control.py`)以外に、以下の常駐プログラムでLEDを
-即座にトリガーできる。どちらもsystemdサービス化済みで、Pi起動時に
+即座にトリガーできる。いずれもsystemdサービス化済みで、Pi起動時に
 自動起動・異常終了時は自動再起動する。
+
+なお常駐デーモン側は、入力デバイスが切断された時点でそのデバイスの押下状態を
+解除しLEDを消灯する(押している最中にBTドングルがUSBリセットされると解放
+イベントが届かず、LEDが点灯したまま固着するため)。消灯するのはそのデバイスが
+点灯させていた場合に限り、他の入力源が点灯中のLEDには干渉しない。
 
 ### USB HIDボタン / マウス (`button_led_daemon.py`)
 
@@ -120,8 +152,55 @@ CLIでの直接操作(`led_control.py`)以外に、以下の常駐プログラ�
   押しっぱなしでフラッシュ。
 - どちらも物理入力でネットワークを経由しないため遅延が最小で、
   実運用の笛代わり用途に最も適している。
-- systemdサービス: `button-led-daemon.service`
-  (ユニットファイル: `button-led-daemon.service`)
+- systemdサービス: `button-led-daemon@<ユーザー名>.service`
+  (ユニットファイル: `button-led-daemon@.service`。後述の「systemdサービスの
+  登録」を参照)
+
+### Bluetoothシャッターボタン (`button_led_daemon.py` に統合)
+
+市販のBLEカメラシャッターボタン(ATUMTEK等)をペアリングし、押している間LED
+点灯・離すと消灯する。1ボタンしかないためフラッシュ機能は割り当てていない。
+
+- **検出方式**: BT HIDデバイスは`/proc/bus/input/devices`の`I:`行が
+  `Bus=0005`(USB機器は`0003`)になるため、バス種別で識別する。シャッターは
+  製品ごとにVendor/Productがバラバラなので、Copy/Pasteボタンのような
+  ID直書きは使えない。
+- **キーコードは固定しない**: 実測ではATUMTEK製が`Consumer Control`ノードで
+  `code=115`(`KEY_VOLUMEUP`, iOSモードの典型)を送出したが、製品/モードにより
+  `KEY_ENTER`等に変わるため、キーコードを問わず「押されている間」で判定する。
+  押下・解放の両方が届くことは実測で確認済み(押している時間がそのまま
+  イベント間隔に一致)。
+- Pi 2 Model BはBluetooth非搭載のため、**別途USB BTドングルが必要**
+  (後述の注意を参照)。
+
+ペアリング手順(シャッターの電源を入れてLED高速点滅=ペアリング待ちにしてから):
+
+```bash
+bluetoothctl --timeout 20 -- scan on      # アドレスを確認
+bluetoothctl pair <MACアドレス>
+bluetoothctl trust <MACアドレス>
+bluetoothctl connect <MACアドレス>
+```
+
+#### BTドングルの注意(重要)
+
+**2026-09時点で試した2製品はいずれも実戦投入に耐えない。**BT経路を使う場合は
+ドングルの選定が最大のリスク要因になる。
+
+| ドングル | USB ID | 症状 |
+|---|---|---|
+| UGREEN CM749 (Barrot BR8554) | `33fa:0010` | BLEスキャン中に数秒おきに`command 0x2041 tx timeout`→USB切断を繰り返す。実質使用不可。 |
+| ノーブランド「BT DONGLE10」(CSR8510 A10クローン) | `0a12:0001` | ペアリング・LED点灯までは正常動作するが、**LEスキャン有効化(`0x200b`)で飛ぶ**。`start background scanning failed: -16`の直後にUSB切断→再列挙。約12分間隔で再発し、一度ハングするとBlueZの`power off/on`では復旧せず抜き差しが必要。 |
+
+CSR8510クローンの障害連鎖は次のとおり。**シャッターが無操作でスリープ→切断
+→BlueZが自動再接続のためLEバックグラウンドスキャンを開始→チップが飛ぶ→
+復帰後もスキャン再開に失敗し自動復帰できない**。電源起因ではない
+(`vcgencmd get_throttled`は`0x0`、USBオートサスペンドも無効)。
+
+そのため、**試合での笛代替にはBT経路より2.4GHz USBレシーバー方式(HIDとして
+見えるためBTスタックを一切介さない)またはUSB有線ボタンを推奨する**。
+アプリケーション側の実装(`BtShutterHandler`)は完成しており、安定した
+ドングルに交換すればそのまま動作する。
 
 ### Webブラウザ (`web_led_server.py`)
 
@@ -132,8 +211,9 @@ CLIでの直接操作(`led_control.py`)以外に、以下の常駐プログラ�
 - **注意**: HTTPリクエストの往復遅延があるため、試合中のリアルタイムな
   笛の代替としては反応がやや遅く感じられる。動作確認・デモ・遠隔操作
   用途向け。
-- systemdサービス: `web-led-server.service`
-  (ユニットファイル: `web-led-server.service`)
+- systemdサービス: `web-led-server@<ユーザー名>.service`
+  (ユニットファイル: `web-led-server@.service`。後述の「systemdサービスの
+  登録」を参照)
 
 ## より小型なRaspberry Piでの実現可否
 
@@ -174,6 +254,8 @@ CLIでの直接操作(`led_control.py`)以外に、以下の常駐プログラ�
   他スクリプトから再利用される)
 - `button_led_daemon.py` - USB HIDボタン(Copy/Paste)・マウスモード常駐
   デーモン
-- `button-led-daemon.service` - 上記デーモンのsystemdユニットファイル
+- `button-led-daemon@.service` - 上記デーモンのsystemdユニットファイル
+  (テンプレートユニット)
 - `web_led_server.py` - スマホ/PCブラウザからの操作用Webサーバー
-- `web-led-server.service` - 上記Webサーバーのsystemdユニットファイル
+- `web-led-server@.service` - 上記Webサーバーのsystemdユニットファイル
+  (テンプレートユニット)

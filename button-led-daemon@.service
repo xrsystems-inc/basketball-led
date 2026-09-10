@@ -1,3 +1,6 @@
+# テンプレートユニット。実行ユーザー名をインスタンス名として渡す。
+#   sudo systemctl enable --now button-led-daemon@<ユーザー名>.service
+# %i がユーザー名とホームディレクトリの両方に展開される。
 [Unit]
 Description=USB HID Copy/Paste Button LED Daemon
 After=pigpiod.service
@@ -5,8 +8,8 @@ Requires=pigpiod.service
 
 [Service]
 Type=simple
-User=<user>
-WorkingDirectory=/home/<user>/basketball/raspi2-led
+User=%i
+WorkingDirectory=/home/%i/basketball/raspi2-led
 ExecStart=/usr/bin/python3 -u button_led_daemon.py
 Restart=on-failure
 RestartSec=5
