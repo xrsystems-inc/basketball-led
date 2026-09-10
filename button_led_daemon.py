@@ -7,6 +7,13 @@ USB HIDボタン(Copy/Paste刻印) + マウス によるLED制御デーモン
     Copyボタン(KEY_C)を押している間 -> LED点灯(100%)、離すと消灯
     Pasteボタン(KEY_V)を押している間 -> LEDがフラッシュ(点滅)、離すと消灯
 
+■ Bluetoothシャッターボタン(カメラリモコン。BT HIDキーボードとして
+  ペアリングされ、Bus=0005のデバイスとして現れる):
+    ボタンを押している間 -> LED点灯(100%)、離すと消灯
+    (1ボタンしかないためフラッシュ機能は割り当てていない。送出される
+     キーコードは製品/モードによって異なる(KEY_VOLUMEUP, KEY_ENTER等)
+     ため、キーコードを問わず「押されている間」で判定する)
+
 ■ マウス(実機のポインティングデバイス。上記ボタンとは別デバイスとして
   Vendor/Product自動検出):
     左クリックを1.5秒以内に4回押す(ダウンイベント)と「マウスモード」を
@@ -42,6 +49,10 @@ import led_control
 
 BUTTON_VENDOR_ID = "514c"
 BUTTON_PRODUCT_ID = "8851"
+
+# /proc/bus/input/devices の I: 行に出るバス種別。USB=0003, Bluetooth=0005。
+# BTシャッターは製品ごとにVendor/Productがバラバラなので、バス種別で識別する。
+BUS_BLUETOOTH = "0005"
 
 EV_KEY = 1
 KEY_C = 46
@@ -100,6 +111,15 @@ def find_mouse_device_path():
     return _find_event_path(is_real_mouse_block, "mouse")
 
 
+def find_bt_shutter_device_path():
+    """Bluetooth接続のHIDキーボード(=シャッターボタン)を探す。
+    BT接続デバイスはI:行が Bus=0005 になるため、USB機器と確実に区別できる。"""
+    def is_bt_kbd_block(block):
+        i_line = next((line for line in block.splitlines() if line.startswith("I:")), None)
+        return bool(i_line) and f"Bus={BUS_BLUETOOTH}" in i_line
+    return _find_event_path(is_bt_kbd_block, "kbd")
+
+
 def read_events(path):
     fd = os.open(path, os.O_RDONLY)
     try:
@@ -114,21 +134,31 @@ def read_events(path):
         os.close(fd)
 
 
-def watch_device(name, find_path_fn, handle_event_fn):
-    """デバイスを検出してイベントを読み続ける。切断/未検出時は自動的に再試行する"""
+def watch_device(name, find_path_fn, handler):
+    """デバイスを検出してイベントを読み続ける。切断/未検出時は自動的に再試行する。
+    切断時はhandler.reset()を呼ぶ。押している最中に切断されると解放イベントが
+    届かずLEDが点灯したまま固着するため(BTドングルのUSBリセット等で実際に起こる)、
+    そのハンドラが点灯させていた場合に限り消灯まで戻す。"""
+    warned = False
     while True:
         path = find_path_fn()
         if not path:
-            print(f"[{name}] デバイスが見つかりません。{RETRY_INTERVAL:.0f}秒後に再検索します。")
+            if not warned:
+                # 未接続のまま常駐するケース(BTシャッター未ペアリング等)があるので、
+                # 見つからない旨は状態が変わった時だけログに出す。
+                print(f"[{name}] デバイスが見つかりません。{RETRY_INTERVAL:.0f}秒ごとに再検索します。")
+                warned = True
             time.sleep(RETRY_INTERVAL)
             continue
+        warned = False
 
         print(f"[{name}] デバイス検出: {path}")
         try:
             for etype, code, value in read_events(path):
-                handle_event_fn(etype, code, value)
+                handler.handle(etype, code, value)
         except OSError as e:
             print(f"[{name}] デバイス読み取りエラー({e})。再接続を試みます。")
+            handler.reset()
             time.sleep(2)
 
 
@@ -166,6 +196,48 @@ class ButtonKeyboardHandler:
                 self._v_down = False
                 self._flasher.stop()
                 print(f"[{ts}] Paste解放 -> LED OFF")
+
+    def reset(self):
+        """デバイス切断時: 押下状態を解除し、自分が点けていたなら消灯する"""
+        if self._c_down or self._v_down:
+            self._c_down = False
+            self._v_down = False
+            self._flasher.stop()
+            self._led.set(0.0)
+            print("[ボタン] 切断検出 -> 押下状態を解除しLED OFF")
+
+
+class BtShutterHandler:
+    """Bluetoothシャッターボタン(1ボタン)のイベント処理。
+    キーコードは問わず、押されている間だけLEDを点灯する。"""
+
+    def __init__(self, led, flasher):
+        self._led = led
+        self._flasher = flasher
+        self._down_code = None
+
+    def handle(self, etype, code, value):
+        if etype != EV_KEY:
+            return
+        ts = time.strftime("%H:%M:%S")
+
+        if value == 1 and self._down_code is None:
+            self._down_code = code
+            self._flasher.stop()
+            self._led.set(100.0)
+            print(f"[{ts}] BTシャッター押下(code={code}) -> LED ON")
+        elif value == 0 and self._down_code == code:
+            self._down_code = None
+            self._led.set(0.0)
+            print(f"[{ts}] BTシャッター解放(code={code}) -> LED OFF")
+        # value == 2 はオートリピートなので無視する
+
+    def reset(self):
+        """デバイス切断時: 押下状態を解除し、自分が点けていたなら消灯する"""
+        if self._down_code is not None:
+            self._down_code = None
+            self._led.set(0.0)
+            print("[BTシャッター] 切断検出 -> 押下状態を解除しLED OFF")
 
 
 class MouseModeHandler:
@@ -223,6 +295,17 @@ class MouseModeHandler:
             self._led.set(100.0)
             print(f"[{ts}] マウス左押下 -> LED ON")
 
+    def reset(self):
+        """デバイス切断時: 押下状態を解除し、自分が点けていたなら消灯する。
+        マウスモードのON/OFF自体は再接続後も維持する"""
+        if self._left_down or self._right_down:
+            self._left_down = False
+            self._right_down = False
+            self._flasher.stop()
+            self._led.set(0.0)
+            print("[マウス] 切断検出 -> 押下状態を解除しLED OFF")
+        self._click_times.clear()
+
 
 def main():
     pi = led_control.connect()
@@ -232,17 +315,21 @@ def main():
 
     kb_handler = ButtonKeyboardHandler(led, flasher)
     mouse_handler = MouseModeHandler(led, flasher)
+    bt_handler = BtShutterHandler(led, flasher)
 
-    mouse_thread = threading.Thread(
-        target=watch_device,
-        args=("マウス", find_mouse_device_path, mouse_handler.handle),
-        daemon=True,
-    )
-    mouse_thread.start()
+    for name, find_fn, handler in (
+        ("マウス", find_mouse_device_path, mouse_handler),
+        ("BTシャッター", find_bt_shutter_device_path, bt_handler),
+    ):
+        threading.Thread(
+            target=watch_device,
+            args=(name, find_fn, handler),
+            daemon=True,
+        ).start()
 
     print(f"ボタン/マウス待ち受け中... 左クリック{QUINT_CLICK_COUNT}連打でマウスモード切替 (Ctrl+Cで終了)")
     try:
-        watch_device("ボタン", find_button_device_path, kb_handler.handle)
+        watch_device("ボタン", find_button_device_path, kb_handler)
     except KeyboardInterrupt:
         pass
     finally:
