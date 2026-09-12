@@ -255,13 +255,16 @@
 
   <h2>回路図</h2>
   <figure class="schematic-figure">
-    <svg class="schematic" viewBox="0 0 980 600" role="img" aria-label="Raspberry Pi 2 の GPIO18 から470Ωを介してNチャネルMOSFETのゲートを駆動し、PoEスプリッターの12V出力で12V LEDテープをローサイドスイッチ方式で点灯させる回路図。ゲートは10kΩでGNDにプルダウンされ、Raspberry PiとPoE系のGNDは共通化されている。">
+    <svg class="schematic" viewBox="0 0 980 600" role="img" aria-label="Raspberry Pi 2 の GPIO18 から470Ωを介してNチャネルMOSFETのゲートを駆動し、PoEスプリッターの12V出力で12V LEDテープをローサイドスイッチ方式で点灯させる回路図。ゲートは10kΩでGNDにプルダウンされ、Raspberry PiとPoE系のGNDは共通化されている。GPIO18にはさらに1kΩ経由でモニタ用LEDが直接接続されており、12V系を繋がなくても出力状態を目視確認できる。">
       <defs>
         <marker id="arrowPower" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
           <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-power)"/>
         </marker>
         <marker id="arrowSignal" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
           <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-signal)"/>
+        </marker>
+        <marker id="arrowNeutral" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
         </marker>
       </defs>
 
@@ -274,6 +277,20 @@
       <!-- GPIO18 pin + wire to R1 -->
       <line x1="220" y1="300" x2="260" y2="300" class="net-signal" stroke-width="2"/>
       <text x="222" y="291" class="lbl-signal">GPIO18 (物理12番)</text>
+
+      <!-- モニタ用LED分岐: GPIO18から直接駆動、トランジスタ不要 -->
+      <circle cx="240" cy="300" r="3.5" fill="var(--accent-signal)"/>
+      <line x1="240" y1="300" x2="240" y2="380" class="net-signal" stroke-width="2"/>
+      <polyline points="240,380 248,390 232,400 248,410 232,420 248,430 240,440" fill="none" stroke="currentColor" stroke-width="2"/>
+      <text x="256" y="414" font-weight="600">1kΩ</text>
+      <line x1="240" y1="440" x2="240" y2="460" class="net-gnd" stroke-width="2"/>
+      <polygon points="228,460 252,460 240,478" fill="currentColor"/>
+      <line x1="228" y1="478" x2="252" y2="478" stroke="currentColor" stroke-width="2.5"/>
+      <line x1="253" y1="459" x2="263" y2="449" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrowNeutral)"/>
+      <line x1="259" y1="466" x2="269" y2="456" stroke="currentColor" stroke-width="1.3" marker-end="url(#arrowNeutral)"/>
+      <text x="256" y="470" class="lbl-muted">モニタ用LED</text>
+      <text x="256" y="486" class="lbl-muted">(GPIO H で点灯)</text>
+      <line x1="240" y1="478" x2="240" y2="540" class="net-gnd" stroke-width="2"/>
 
       <!-- R1 470ohm -->
       <polyline points="260,300 270,292 280,308 290,292 300,308 310,292 320,308 330,300" fill="none" stroke="currentColor" stroke-width="2"/>
@@ -334,9 +351,10 @@
 
       <!-- common ground rail -->
       <line x1="110" y1="540" x2="750" y2="540" stroke="currentColor" stroke-width="2.5"/>
-      <text x="110" y="562" class="lbl-muted">共通 GND レール(Pi / MOSFET Source / PoE を全て接続)</text>
+      <text x="110" y="562" class="lbl-muted">共通 GND レール(Pi / モニタLED / MOSFET Source / PoE を全て接続)</text>
       <g stroke="currentColor" stroke-width="1.5">
         <line x1="125" y1="540" x2="135" y2="552"/><line x1="120" y1="546" x2="128" y2="554"/>
+        <line x1="235" y1="540" x2="245" y2="552"/><line x1="230" y1="546" x2="238" y2="554"/>
         <line x1="595" y1="540" x2="605" y2="552"/><line x1="590" y1="546" x2="598" y2="554"/>
         <line x1="685" y1="540" x2="695" y2="552"/><line x1="680" y1="546" x2="688" y2="554"/>
         <line x1="725" y1="540" x2="735" y2="552"/><line x1="720" y1="546" x2="728" y2="554"/>
@@ -348,6 +366,7 @@
       <circle cx="672" cy="465" r="11" class="tag-circle"/><text x="672" y="469" text-anchor="middle" class="tag-text">③</text>
       <circle cx="900" cy="373" r="11" class="tag-circle"/><text x="900" y="377" text-anchor="middle" class="tag-text">④</text>
       <circle cx="690" cy="515" r="11" class="tag-circle"/><text x="690" y="519" text-anchor="middle" class="tag-text">⑤</text>
+      <circle cx="197" cy="437" r="11" class="tag-circle"/><text x="197" y="441" text-anchor="middle" class="tag-text">⑥</text>
     </svg>
 
     <div class="legend">
@@ -355,7 +374,7 @@
       <span><i class="swatch" style="background:var(--accent-signal)"></i>GPIO制御信号(PWM)</span>
       <span><i class="swatch" style="background:var(--muted)"></i>共通GND</span>
     </div>
-    <figcaption>GPIO18(物理12番)がゲート抵抗470Ωを介してMOSFETのゲートを駆動し、ドレイン側の12V LEDテープをスイッチする。ゲートは10kΩでGNDへプルダウンし、Raspberry PiとPoE系のGNDは1点で共通化する。</figcaption>
+    <figcaption>GPIO18(物理12番)がゲート抵抗470Ωを介してMOSFETのゲートを駆動し、ドレイン側の12V LEDテープをスイッチする。ゲートは10kΩでGNDへプルダウンし、Raspberry PiとPoE系のGNDは1点で共通化する。同じGPIO18には1kΩ経由のモニタ用LEDも直結しており、12V系なしでも出力状態を確認できる。</figcaption>
   </figure>
 
   <h2>設計上のポイント</h2>
@@ -366,6 +385,7 @@
       <li><span class="tag">③</span>ゲート-GND間に10kΩのプルダウン抵抗。Pi起動中はGPIOが不定状態になるため、これがないとActive High構成で起動シーケンス中にLEDが誤って一瞬点灯し得る。</li>
       <li><span class="tag">④</span>MOSFETは必ずロジックレベル品を使う(例: IRLZ44N, IRLB8721, AO3400等)。3.3VのGPIO駆動で十分にONしない品種だとRds(on)が高いままになり発熱する。</li>
       <li><span class="tag">⑤</span>PoE 12V系のGNDとRaspberry PiのGNDを共通化する。ローサイドスイッチ方式のため、ゲート信号側とドレイン電流経路側が同じGND基準でないと正しく動作しない。</li>
+      <li><span class="tag">⑥</span>GPIO18から1kΩを介してモニタ用LEDを直接駆動しGNDへ落とす(トランジスタ不要)。GPIO Highで点灯し、PWMのデューティ比に応じて明るさも連動するため、12V系を接続していなくても出力の生死やPWM動作を目視確認できる。電流は約1.3mA(GPIOピンの絶対最大定格16mAに対し十分な余裕)で、明るさを上げたい場合は330〜470Ωまで下げても安全(約2.8〜3.9mA)。</li>
     </ol>
 
     <table>
@@ -376,6 +396,8 @@
         <tr><td>MOSFET</td><td class="val">N-ch ロジックレベル<br>IRLZ44N / IRLB8721 / AO3400</td></tr>
         <tr><td>ゲート直列抵抗</td><td class="val">470Ω</td></tr>
         <tr><td>ゲートプルダウン抵抗</td><td class="val">10kΩ</td></tr>
+        <tr><td>モニタ用LED直列抵抗</td><td class="val">1kΩ(明るさ重視なら330〜470Ω)</td></tr>
+        <tr><td>モニタ用LED</td><td class="val">一般的な赤色LED<br>(Vf≈2V、3〜5mm径)</td></tr>
         <tr><td>LED負荷</td><td class="val">12V LEDテープ/モジュール<br>(電流制限抵抗内蔵)</td></tr>
         <tr><td>電源</td><td class="val">PoEスプリッター 12V出力</td></tr>
       </tbody>
