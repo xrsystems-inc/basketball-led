@@ -1,0 +1,391 @@
+<title>ホイッスルライト回路図</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f2ede0;
+    --surface:#fffdf7;
+    --surface-2:#e8e0cb;
+    --ink:#1c231e;
+    --muted:#5b6a5f;
+    --border:#cdbf9e;
+    --accent-power:#b3401c;
+    --accent-signal:#146b63;
+    --font-display:'Big Shoulders Display',system-ui,sans-serif;
+    --font-body:'IBM Plex Sans',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,'SFMono-Regular',monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#10160f;
+      --surface:#171f19;
+      --surface-2:#1f2921;
+      --ink:#e9f1ea;
+      --muted:#93a89a;
+      --border:#2c3a30;
+      --accent-power:#e2703c;
+      --accent-signal:#4fd1c0;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#10160f;
+    --surface:#171f19;
+    --surface-2:#1f2921;
+    --ink:#e9f1ea;
+    --muted:#93a89a;
+    --border:#2c3a30;
+    --accent-power:#e2703c;
+    --accent-signal:#4fd1c0;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    background-image:
+      repeating-linear-gradient(0deg, color-mix(in srgb, var(--ink) 5%, transparent) 0 1px, transparent 1px 32px),
+      repeating-linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 0 1px, transparent 1px 32px);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.6;
+  }
+  .page{
+    max-width:900px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+  }
+
+  /* ---- title block ---- */
+  .titleblock{
+    border:2px solid var(--ink);
+    background:var(--surface);
+    padding:20px 24px;
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--accent-power);
+    font-weight:600;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(32px,5vw,46px);
+    letter-spacing:.01em;
+    text-transform:uppercase;
+    margin:0;
+    text-wrap:balance;
+  }
+  .titleblock p{
+    margin:2px 0 0;
+    max-width:62ch;
+    color:var(--muted);
+    font-size:15px;
+  }
+  .sheet-meta{
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px solid var(--border);
+    display:flex;
+    flex-wrap:wrap;
+    gap:4px 22px;
+    font-family:var(--font-mono);
+    font-size:11.5px;
+    color:var(--muted);
+    letter-spacing:.03em;
+  }
+  .sheet-meta b{color:var(--ink);font-weight:600;}
+
+  /* ---- section headings ---- */
+  h2{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:20px;
+    text-transform:uppercase;
+    letter-spacing:.03em;
+    margin:44px 0 14px;
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+  }
+  h2::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--border);
+  }
+
+  /* ---- schematic figure ---- */
+  figure.schematic-figure{
+    margin:0;
+    background:var(--surface);
+    border:1px solid var(--border);
+    padding:18px 18px 14px;
+  }
+  svg.schematic{
+    width:100%;
+    height:auto;
+    display:block;
+    color:var(--ink);
+  }
+  svg.schematic text{
+    font-family:var(--font-mono);
+    font-size:13px;
+    fill:currentColor;
+  }
+  .lbl-power{fill:var(--accent-power);}
+  .lbl-signal{fill:var(--accent-signal);}
+  .lbl-muted{fill:var(--muted); font-size:11.5px;}
+  .net-power{stroke:var(--accent-power);}
+  .net-signal{stroke:var(--accent-signal);}
+  .net-gnd{stroke:var(--muted);}
+  .tag-circle{fill:var(--surface-2); stroke:var(--ink); stroke-width:1.2;}
+  .tag-text{font-size:12px; font-weight:600;}
+
+  figcaption{
+    margin-top:12px;
+    font-size:13.5px;
+    color:var(--muted);
+  }
+  .legend{
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    margin-top:14px;
+    padding-top:12px;
+    border-top:1px dashed var(--border);
+    font-family:var(--font-mono);
+    font-size:12px;
+  }
+  .legend span{display:inline-flex; align-items:center; gap:7px;}
+  .swatch{width:22px; height:3px; border-radius:2px; display:inline-block;}
+
+  /* ---- two column: notes + bom ---- */
+  .grid-2{
+    display:grid;
+    grid-template-columns:1.1fr 1fr;
+    gap:26px;
+    align-items:start;
+  }
+  @media (max-width:700px){ .grid-2{grid-template-columns:1fr;} }
+
+  .notes{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px;}
+  .notes li{display:flex; gap:10px; font-size:14.5px;}
+  .tag{
+    font-family:var(--font-mono);
+    font-size:13px;
+    color:var(--ink);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:50%;
+    width:22px; height:22px;
+    flex:none;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--surface);
+    font-size:13.5px;
+  }
+  caption{
+    text-align:left;
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:8px;
+  }
+  th,td{
+    text-align:left;
+    padding:8px 10px;
+    border-bottom:1px solid var(--border);
+    vertical-align:top;
+  }
+  thead th{
+    font-family:var(--font-mono);
+    font-size:11px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    color:var(--muted);
+    border-bottom:2px solid var(--ink);
+  }
+  td.val{font-family:var(--font-mono); white-space:nowrap; color:var(--ink);}
+  tbody tr:last-child td{border-bottom:none;}
+
+  .callout{
+    margin-top:20px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-left:4px solid var(--accent-power);
+    padding:14px 16px;
+    font-size:13.8px;
+  }
+  .callout b{font-family:var(--font-mono); text-transform:uppercase; font-size:11.5px; letter-spacing:.06em; color:var(--accent-power); display:block; margin-bottom:5px;}
+
+  footer{
+    margin-top:48px;
+    padding-top:14px;
+    border-top:1px solid var(--border);
+    font-family:var(--font-mono);
+    font-size:11px;
+    color:var(--muted);
+  }
+</style>
+
+<div class="page">
+
+  <div class="titleblock">
+    <div class="eyebrow">Deaf Basketball Signal System</div>
+    <h1>ホイッスルライト 回路図</h1>
+    <p>コートサイドのLEDテープを笛の代わりに点灯・フラッシュさせるための駆動回路。Raspberry Pi 2 の GPIO18 が Nチャネル MOSFET のローサイドスイッチを介して 12V LED テープを PWM 調光する。</p>
+    <div class="sheet-meta">
+      <span>方式: <b>N-ch MOSFET ローサイドスイッチ / Active High</b></span>
+      <span>制御: <b>GPIO18 ハードウェアPWM (pigpio)</b></span>
+      <span>電源: <b>PoEスプリッター 12V出力</b></span>
+    </div>
+  </div>
+
+  <h2>回路図</h2>
+  <figure class="schematic-figure">
+    <svg class="schematic" viewBox="0 0 980 600" role="img" aria-label="Raspberry Pi 2 の GPIO18 から470Ωを介してNチャネルMOSFETのゲートを駆動し、PoEスプリッターの12V出力で12V LEDテープをローサイドスイッチ方式で点灯させる回路図。ゲートは10kΩでGNDにプルダウンされ、Raspberry PiとPoE系のGNDは共通化されている。">
+      <defs>
+        <marker id="arrowPower" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-power)"/>
+        </marker>
+        <marker id="arrowSignal" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--accent-signal)"/>
+        </marker>
+      </defs>
+
+      <!-- Raspberry Pi box -->
+      <rect x="40" y="270" width="180" height="100" rx="4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+      <text x="130" y="315" text-anchor="middle" font-weight="600">Raspberry Pi 2</text>
+      <text x="130" y="333" text-anchor="middle">Model B</text>
+      <text x="130" y="356" text-anchor="middle" class="lbl-muted">GND ─┘below</text>
+
+      <!-- GPIO18 pin + wire to R1 -->
+      <line x1="220" y1="300" x2="260" y2="300" class="net-signal" stroke-width="2"/>
+      <text x="222" y="291" class="lbl-signal">GPIO18 (物理12番)</text>
+
+      <!-- R1 470ohm -->
+      <polyline points="260,300 270,292 280,308 290,292 300,308 310,292 320,308 330,300" fill="none" stroke="currentColor" stroke-width="2"/>
+      <text x="278" y="282" text-anchor="middle" font-weight="600">470Ω</text>
+
+      <!-- wire R1 -> gate node, with direction arrow -->
+      <line x1="330" y1="300" x2="595" y2="300" class="net-signal" stroke-width="2" marker-end="url(#arrowSignal)"/>
+      <circle cx="600" cy="300" r="3.5" fill="var(--accent-signal)"/>
+
+      <!-- gate node down to R2 -->
+      <line x1="600" y1="300" x2="600" y2="430" class="net-signal" stroke-width="2"/>
+      <polyline points="600,430 608,440 592,450 608,460 592,470 608,480 600,490" fill="none" stroke="currentColor" stroke-width="2"/>
+      <text x="616" y="465" font-weight="600">10kΩ</text>
+      <line x1="600" y1="490" x2="600" y2="540" class="net-gnd" stroke-width="2"/>
+
+      <!-- gate node to MOSFET gate plate -->
+      <line x1="600" y1="300" x2="650" y2="300" class="net-signal" stroke-width="2"/>
+      <line x1="650" y1="300" x2="650" y2="362" class="net-signal" stroke-width="2"/>
+      <line x1="650" y1="362" x2="670" y2="362" class="net-signal" stroke-width="2"/>
+      <text x="656" y="405" class="lbl-signal">Gate</text>
+
+      <!-- MOSFET symbol -->
+      <line x1="670" y1="345" x2="670" y2="380" stroke="currentColor" stroke-width="2.5"/>
+      <line x1="690" y1="330" x2="690" y2="400" stroke="currentColor" stroke-width="3"/>
+      <path d="M683,395 L695,382" stroke="currentColor" stroke-width="1.5" fill="none"/>
+      <path d="M691,382 L695,382 L695,386" fill="none" stroke="currentColor" stroke-width="1.5"/>
+      <text x="705" y="322" class="lbl-power">Drain</text>
+      <text x="705" y="435" class="lbl-muted">Source</text>
+      <rect x="740" y="345" width="190" height="56" rx="3" fill="var(--surface-2)" stroke="var(--border)"/>
+      <text x="750" y="368" font-size="12.5">N-ch MOSFET</text>
+      <text x="750" y="386" class="lbl-muted">(ロジックレベル品)</text>
+
+      <!-- Drain lead up to LED(-) -->
+      <line x1="690" y1="330" x2="690" y2="240" class="net-power" stroke-width="2" marker-end="url(#arrowPower)"/>
+      <!-- Source lead down to GND rail -->
+      <line x1="690" y1="400" x2="690" y2="540" class="net-gnd" stroke-width="2"/>
+
+      <!-- LED strip box -->
+      <rect x="590" y="150" width="200" height="90" rx="4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+      <text x="690" y="188" text-anchor="middle" font-weight="600">12V LEDテープ</text>
+      <text x="690" y="205" text-anchor="middle" font-weight="600">/ モジュール</text>
+      <text x="690" y="223" text-anchor="middle" class="lbl-muted">(電流制限抵抗 内蔵)</text>
+
+      <!-- 12V+ from PoE to LED -->
+      <line x1="690" y1="110" x2="690" y2="150" class="net-power" stroke-width="2"/>
+
+      <!-- PoE box -->
+      <rect x="595" y="40" width="190" height="70" rx="4" fill="var(--surface)" stroke="currentColor" stroke-width="2"/>
+      <text x="690" y="70" text-anchor="middle" font-weight="600">PoEスプリッター</text>
+      <text x="690" y="88" text-anchor="middle" class="lbl-power">12V 出力</text>
+
+      <!-- PoE GND down to rail -->
+      <line x1="730" y1="110" x2="730" y2="540" class="net-gnd" stroke-width="2"/>
+      <text x="737" y="130" class="lbl-muted">GND</text>
+
+      <!-- Pi GND down to rail -->
+      <line x1="130" y1="370" x2="130" y2="540" class="net-gnd" stroke-width="2"/>
+
+      <!-- common ground rail -->
+      <line x1="110" y1="540" x2="750" y2="540" stroke="currentColor" stroke-width="2.5"/>
+      <text x="110" y="562" class="lbl-muted">共通 GND レール(Pi / MOSFET Source / PoE を全て接続)</text>
+      <g stroke="currentColor" stroke-width="1.5">
+        <line x1="125" y1="540" x2="135" y2="552"/><line x1="120" y1="546" x2="128" y2="554"/>
+        <line x1="595" y1="540" x2="605" y2="552"/><line x1="590" y1="546" x2="598" y2="554"/>
+        <line x1="685" y1="540" x2="695" y2="552"/><line x1="680" y1="546" x2="688" y2="554"/>
+        <line x1="725" y1="540" x2="735" y2="552"/><line x1="720" y1="546" x2="728" y2="554"/>
+      </g>
+
+      <!-- annotation tags -->
+      <circle cx="662" cy="146" r="11" class="tag-circle"/><text x="662" y="150" text-anchor="middle" class="tag-text">①</text>
+      <circle cx="278" cy="268" r="11" class="tag-circle"/><text x="278" y="272" text-anchor="middle" class="tag-text">②</text>
+      <circle cx="636" cy="465" r="11" class="tag-circle"/><text x="636" y="469" text-anchor="middle" class="tag-text">③</text>
+      <circle cx="835" cy="373" r="11" class="tag-circle"/><text x="835" y="377" text-anchor="middle" class="tag-text">④</text>
+      <circle cx="420" cy="565" r="11" class="tag-circle"/><text x="420" y="569" text-anchor="middle" class="tag-text">⑤</text>
+    </svg>
+
+    <div class="legend">
+      <span><i class="swatch" style="background:var(--accent-power)"></i>12V系(負荷電流経路)</span>
+      <span><i class="swatch" style="background:var(--accent-signal)"></i>GPIO制御信号(PWM)</span>
+      <span><i class="swatch" style="background:var(--muted)"></i>共通GND</span>
+    </div>
+    <figcaption>GPIO18(物理12番)がゲート抵抗470Ωを介してMOSFETのゲートを駆動し、ドレイン側の12V LEDテープをスイッチする。ゲートは10kΩでGNDへプルダウンし、Raspberry PiとPoE系のGNDは1点で共通化する。</figcaption>
+  </figure>
+
+  <h2>設計上のポイント</h2>
+  <div class="grid-2">
+    <ol class="notes" style="list-style:none;">
+      <li><span class="tag">①</span>LED(+)はPoEの12V(+)へ直結。LEDテープ側に電流制限抵抗が内蔵済みのため、外部に直列抵抗を足すと電圧降下で正しく点灯しない。</li>
+      <li><span class="tag">②</span>GPIO18とゲート間に470Ωを直列に挿入。ゲート容量の充放電による突入電流をGPIOピンから制限する(PWM 200Hzならスイッチング速度への影響は無視できる)。</li>
+      <li><span class="tag">③</span>ゲート-GND間に10kΩのプルダウン抵抗。Pi起動中はGPIOが不定状態になるため、これがないとActive High構成で起動シーケンス中にLEDが誤って一瞬点灯し得る。</li>
+      <li><span class="tag">④</span>MOSFETは必ずロジックレベル品を使う(例: IRLZ44N, IRLB8721, AO3400等)。3.3VのGPIO駆動で十分にONしない品種だとRds(on)が高いままになり発熱する。</li>
+      <li><span class="tag">⑤</span>PoE 12V系のGNDとRaspberry PiのGNDを共通化する。ローサイドスイッチ方式のため、ゲート信号側とドレイン電流経路側が同じGND基準でないと正しく動作しない。</li>
+    </ol>
+
+    <table>
+      <caption>部品表(BOM)</caption>
+      <thead><tr><th>部品</th><th>定数 / 型番例</th></tr></thead>
+      <tbody>
+        <tr><td>コントローラ</td><td class="val">Raspberry Pi 2 Model B</td></tr>
+        <tr><td>MOSFET</td><td class="val">N-ch ロジックレベル<br>IRLZ44N / IRLB8721 / AO3400</td></tr>
+        <tr><td>ゲート直列抵抗</td><td class="val">470Ω</td></tr>
+        <tr><td>ゲートプルダウン抵抗</td><td class="val">10kΩ</td></tr>
+        <tr><td>LED負荷</td><td class="val">12V LEDテープ/モジュール<br>(電流制限抵抗内蔵)</td></tr>
+        <tr><td>電源</td><td class="val">PoEスプリッター 12V出力</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout">
+    <b>電流に関する注意</b>
+    LEDテープの総電流はPoEスプリッターの12V出力定格を超えないこと。802.3af 目安 0.7〜0.8A、802.3at 目安 〜2A。Raspberry Pi自体の電源も同じPoE系統から取る場合は合算で確認する。
+  </div>
+
+  <footer>Basketball LED Project — 出典: README.md「接続図」節</footer>
+</div>
