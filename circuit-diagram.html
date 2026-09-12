@@ -380,12 +380,12 @@
   <h2>設計上のポイント</h2>
   <div class="grid-2">
     <ol class="notes" style="list-style:none;">
-      <li><span class="tag">①</span>LED(+)はPoEの12V(+)へ直結。LEDテープ側に電流制限抵抗が内蔵済みのため、外部に直列抵抗を足すと電圧降下で正しく点灯しない。</li>
-      <li><span class="tag">②</span>GPIO18とゲート間に470Ωを直列に挿入。ゲート容量の充放電による突入電流をGPIOピンから制限する(PWM 200Hzならスイッチング速度への影響は無視できる)。</li>
-      <li><span class="tag">③</span>ゲート-GND間に10kΩのプルダウン抵抗。Pi起動中はGPIOが不定状態になるため、これがないとActive High構成で起動シーケンス中にLEDが誤って一瞬点灯し得る。</li>
-      <li><span class="tag">④</span>MOSFETは必ずロジックレベル品を使う(例: IRLZ44N, IRLB8721, AO3400等)。3.3VのGPIO駆動で十分にONしない品種だとRds(on)が高いままになり発熱する。</li>
-      <li><span class="tag">⑤</span>PoE 12V系のGNDとRaspberry PiのGNDを共通化する。ローサイドスイッチ方式のため、ゲート信号側とドレイン電流経路側が同じGND基準でないと正しく動作しない。</li>
-      <li><span class="tag">⑥</span>GPIO18から1kΩを介してモニタ用LEDを直接駆動しGNDへ落とす(トランジスタ不要)。GPIO Highで点灯し、PWMのデューティ比に応じて明るさも連動するため、12V系を接続していなくても出力の生死やPWM動作を目視確認できる。電流は約1.3mA(GPIOピンの絶対最大定格16mAに対し十分な余裕)で、明るさを上げたい場合は330〜470Ωまで下げても安全(約2.8〜3.9mA)。</li>
+      <li><span class="tag">①</span>LED(+)はPoEの12V(+)へ直結します。LEDテープ側に電流制限抵抗が内蔵済みのため、外部に直列抵抗を足すと電圧降下で正しく点灯しません。</li>
+      <li><span class="tag">②</span>GPIO18とゲート間に470Ωを直列に挿入します。ゲート容量の充放電による突入電流をGPIOピンから制限します(PWM 200Hzならスイッチング速度への影響は無視できます)。</li>
+      <li><span class="tag">③</span>ゲート-GND間に10kΩのプルダウン抵抗を入れます。Pi起動中はGPIOが不定状態になるため、これがないとActive High構成で起動シーケンス中にLEDが誤って一瞬点灯することがあります。</li>
+      <li><span class="tag">④</span>MOSFETは必ずロジックレベル品を使います(例: IRLZ44N, IRLB8721, AO3400等)。3.3VのGPIO駆動で十分にONしない品種だとRds(on)が高いままになり発熱の原因になります。</li>
+      <li><span class="tag">⑤</span>PoE 12V系のGNDとRaspberry PiのGNDを共通化します。ローサイドスイッチ方式のため、ゲート信号側とドレイン電流経路側が同じGND基準でないと正しく動作しません。</li>
+      <li><span class="tag">⑥</span>GPIO18から1kΩを介してモニタ用LEDを直接駆動しGNDへ落とします(トランジスタは不要です)。GPIO Highで点灯し、PWMのデューティ比に応じて明るさも連動するため、12V系を接続していなくても出力の生死やPWM動作を目視確認できます。電流は約1.3mA(GPIOピンの絶対最大定格16mAに対し十分な余裕があります)で、明るさを上げたい場合は330〜470Ωまで下げても安全です(約2.8〜3.9mA)。</li>
     </ol>
 
     <table>
